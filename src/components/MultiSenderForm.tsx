@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { encodeFunctionData, parseEther } from 'viem'
+import { encodeFunctionData, parseUnits } from 'viem'
 import { useAppKitProvider, type Provider, useAppKitAccount } from '@reown/appkit/react-core'
 import { multisenderAddress } from '@/config'
 
@@ -30,9 +30,11 @@ const abi = [
 ] as const
 
 const tokenList = [
-  { symbol: 'ETH', address: '', decimals: 18 },
-  { symbol: 'WETH', address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', decimals: 18 },
-  { symbol: 'GHO', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eb48', decimals: 18 },
+  { symbol: 'GHO', address: '', decimals: 18 },
+  { symbol: 'WGHO', address: '0x6bDc36E20D267Ff0dd6097799f82e78907105e2F', decimals: 18 },
+  { symbol: 'BONSAI', address: '0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82', decimals: 18 },
+  { symbol: 'WETH', address: '0xE5ecd226b3032910CEaa43ba92EE8232f8237553', decimals: 18 },
+  { symbol: 'USDC', address: '0x88F08E304EC4f90D644Cec3Fb69b8aD414acf884', decimals: 6 },
 ] as const
 
 export const MultiSenderForm = () => {
@@ -96,7 +98,7 @@ export const MultiSenderForm = () => {
         const [r, a] = line.split(',')
         if (r && a) {
           recips.push(r.trim())
-          values.push(parseEther(a.trim() as `${number}`))
+          values.push(parseUnits(a.trim() as `${number}`, selectedToken.decimals))
         }
       })
 
