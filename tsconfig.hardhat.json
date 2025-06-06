@@ -5,6 +5,11 @@
     "allowJs": true,
     "target": "es2020"
   },
-  "include": ["./scripts", "./hardhat.config.ts", "./contracts/**/*"],
+  "include": [
+    "./scripts",
+    "./hardhat.config.ts",
+    "./contracts/**/*",
+    "./test/**/*"
+  ],
   "exclude": ["node_modules"]
 }
