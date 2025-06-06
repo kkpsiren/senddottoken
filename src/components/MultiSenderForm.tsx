@@ -136,16 +136,24 @@ export const MultiSenderForm = () => {
       setStatus(`Transaction sent: https://etherscan.io/tx/${truncated}`)
 
       let receipt = null
-      while (!receipt) {
+      const maxRetries = 30
+      let retries = 0
+      while (!receipt && retries < maxRetries) {
         receipt = await walletProvider.request({
           method: 'eth_getTransactionReceipt',
           params: [hash]
         })
         if (!receipt) {
+          retries++
           await new Promise((res) => setTimeout(res, 2000))
         }
       }
-      setStatus(`Transaction confirmed: https://etherscan.io/tx/${truncated}`)
+
+      if (!receipt) {
+        setError('Transaction receipt not found after waiting')
+      } else {
+        setStatus(`Transaction confirmed: https://etherscan.io/tx/${truncated}`)
+      }
     } catch (err: any) {
       setError(err.message || 'Transaction failed')
     }
