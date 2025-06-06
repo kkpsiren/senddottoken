@@ -1,27 +1,31 @@
 "use client";
 
-import { projectId, networks } from "@/config";
+import { wagmiAdapter, projectId, networks } from "@/config";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppKit } from "@reown/appkit/react";
 import React, { type ReactNode } from "react";
+import { cookieToInitialState, WagmiProvider, type Config } from "wagmi";
 
-if (!projectId) {
-  throw new Error("Project ID is not defined");
-}
+// Set up queryClient
+const queryClient = new QueryClient();
 
 // Set up metadata
 const metadata = {
   name: "Send.Token",
-  description: "next-reown-appkit",
-  url: "https://github.com/0xonerb/next-reown-appkit-ssr", // origin must match your domain & subdomain
+  description:
+    "Send any ERC-20 token or native currency to multiple recipients.",
+  url: "https://send.token", // origin must match your domain & subdomain
   icons: ["https://avatars.githubusercontent.com/u/179229932"],
 };
 
 // Create the modal
 export const modal = createAppKit({
-  adapters: [],
+  enableEIP6963: true,
+  adapters: [wagmiAdapter],
   projectId,
   networks,
   metadata,
+
   themeMode: "light",
   features: {
     analytics: true, // Optional - defaults to your Cloud configuration
@@ -36,8 +40,26 @@ export const modal = createAppKit({
   },
 });
 
-function ContextProvider({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+function ContextProvider({
+  children,
+  cookies,
+}: {
+  children: ReactNode;
+  cookies: string | null;
+}) {
+  const initialState = cookieToInitialState(
+    wagmiAdapter.wagmiConfig as Config,
+    cookies
+  );
+
+  return (
+    <WagmiProvider
+      config={wagmiAdapter.wagmiConfig as Config}
+      initialState={initialState}
+    >
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
+  );
 }
 
 export default ContextProvider;
