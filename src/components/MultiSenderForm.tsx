@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { encodeFunctionData, parseEther } from 'viem'
 import { useAppKitProvider, type Provider, useAppKitAccount } from '@reown/appkit/react-core'
 import { multisenderAddress } from '@/config'
@@ -29,16 +29,52 @@ const abi = [
   }
 ] as const
 
+const tokenList = [
+  { symbol: 'ETH', address: '', decimals: 18 },
+  { symbol: 'WETH', address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', decimals: 18 },
+  { symbol: 'GHO', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eb48', decimals: 18 },
+] as const
+
 export const MultiSenderForm = () => {
   const { walletProvider } = useAppKitProvider<Provider>('eip155')
-  const { isConnected } = useAppKitAccount()
+  const { address, isConnected } = useAppKitAccount()
 
-  const [useToken, setUseToken] = useState(false)
-  const [token, setToken] = useState('')
-  const [recipients, setRecipients] = useState('')
-  const [amounts, setAmounts] = useState('')
+  const [entries, setEntries] = useState('')
+  const [balances, setBalances] = useState<Record<string, bigint>>({})
+  const [selectedSymbol, setSelectedSymbol] = useState(tokenList[0].symbol)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const selectedToken = tokenList.find(t => t.symbol === selectedSymbol)!
+
+  useEffect(() => {
+    if (!address) return
+    const fetchBalances = async () => {
+      const result: Record<string, bigint> = {}
+      for (const t of tokenList) {
+        try {
+          if (!t.address) {
+            const bal = await walletProvider.request({
+              method: 'eth_getBalance',
+              params: [address, 'latest']
+            }) as string
+            result[t.symbol] = BigInt(bal)
+          } else {
+            const data = '0x70a08231' + address.slice(2).padStart(64, '0')
+            const bal = await walletProvider.request({
+              method: 'eth_call',
+              params: [{ to: t.address, data }, 'latest']
+            }) as string
+            result[t.symbol] = BigInt(bal)
+          }
+        } catch (err) {
+          result[t.symbol] = 0n
+        }
+      }
+      setBalances(result)
+    }
+    fetchBalances().catch(console.error)
+  }, [address, walletProvider])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,26 +86,43 @@ export const MultiSenderForm = () => {
       return
     }
 
-    const recips = recipients.split(',').map((r) => r.trim()).filter(Boolean)
-    const amnts = amounts.split(',').map((a) => a.trim()).filter(Boolean)
+    const recips: string[] = []
+    const values: bigint[] = []
+    entries
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        const [r, a] = line.split(',')
+        if (r && a) {
+          recips.push(r.trim())
+          values.push(parseEther(a.trim() as `${number}`))
+        }
+      })
 
-    if (recips.length !== amnts.length) {
-      setError('Recipients and amounts length mismatch')
+    if (recips.length === 0) {
+      setError('No valid entries')
+      return
+    }
+
+    const total = values.reduce((s, v) => s + v, 0n)
+    const bal = balances[selectedSymbol] || 0n
+    if (bal < total) {
+      setError('Insufficient balance')
       return
     }
 
     try {
-      const values = amnts.map((a) => parseEther(a as `${number}`))
       const data = encodeFunctionData({
         abi,
-        functionName: useToken ? 'disperseToken' : 'disperseEther',
-        args: useToken ? [token, recips, values] : [recips, values]
+        functionName: selectedToken.address ? 'disperseToken' : 'disperseEther',
+        args: selectedToken.address ? [selectedToken.address, recips, values] : [recips, values]
       })
 
       const tx = {
         to: multisenderAddress,
         data,
-        value: useToken ? '0x0' : values.reduce((sum, v) => sum + v, 0n).toString(16)
+        value: selectedToken.address ? '0x0' : total.toString(16)
       }
 
       const hash: string = await walletProvider.request({
@@ -101,40 +154,26 @@ export const MultiSenderForm = () => {
   return (
     <form onSubmit={handleSubmit} style={{ margin: '20px' }}>
       <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={useToken}
-            onChange={(e) => setUseToken(e.target.checked)}
-          />
-          {' '}Sending ERC-20 Token
-        </label>
-      </div>
-      {useToken && (
-        <div>
-          <input
-            type="text"
-            placeholder="token address"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            style={{ width: '300px' }}
-          />
-        </div>
-      )}
-      <div>
-        <textarea
-          placeholder="recipients,comma,separated"
-          value={recipients}
-          onChange={(e) => setRecipients(e.target.value)}
-          style={{ width: '300px', height: '60px' }}
-        />
+        <select
+          value={selectedSymbol}
+          onChange={(e) => setSelectedSymbol(e.target.value)}
+        >
+          {tokenList.map((t) => (
+            <option key={t.symbol} value={t.symbol}>{t.symbol}</option>
+          ))}
+        </select>
+        {balances[selectedSymbol] !== undefined && (
+          <span style={{ marginLeft: '10px' }}>
+            Balance: {Number(balances[selectedSymbol]) / 10 ** selectedToken.decimals}
+          </span>
+        )}
       </div>
       <div>
         <textarea
-          placeholder="amounts,comma,separated"
-          value={amounts}
-          onChange={(e) => setAmounts(e.target.value)}
-          style={{ width: '300px', height: '60px' }}
+          placeholder="recipient, amount per line"
+          value={entries}
+          onChange={(e) => setEntries(e.target.value)}
+          style={{ width: '300px', height: '100px' }}
         />
       </div>
       <button type="submit">Submit</button>
