@@ -19,9 +19,13 @@ export const ActionButtonList = () => {
         }) as { signature: string }
         
         console.log("result", result);
-      } catch (error: any) {
-        console.log("error", error);
-        throw new Error(error);
+      } catch (error: unknown) {
+        console.log('error', error)
+        if (error instanceof Error) {
+          throw new Error(error.message)
+        } else {
+          throw new Error('Unknown error')
+        }
       }
     }
     
