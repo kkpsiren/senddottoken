@@ -16,6 +16,19 @@ const config: HardhatUserConfig = {
         url: process.env.RPC_URL,
         accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
       }
+    }),
+    ...(process.env.RPC_URL_LENS && {
+      lens: {
+        url: process.env.RPC_URL_LENS,
+        accounts: process.env.PRIVATE_KEY_LENS
+          ? [process.env.PRIVATE_KEY_LENS]
+          : process.env.PRIVATE_KEY
+            ? [process.env.PRIVATE_KEY]
+            : [],
+        chainId: process.env.CHAIN_ID_LENS
+          ? parseInt(process.env.CHAIN_ID_LENS)
+          : undefined
+      }
     })
   }
 };
