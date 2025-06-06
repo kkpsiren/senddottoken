@@ -1,6 +1,7 @@
 import { ConnectButton } from "@/components/ConnectButton";
 import { InfoList } from "@/components/InfoList";
 import { ActionButtonList } from "@/components/ActionButtonList";
+import { MultiSenderForm } from "@/components/MultiSenderForm";
 import Image from 'next/image';
 
 export default function Home() {
@@ -12,6 +13,7 @@ export default function Home() {
 
       <ConnectButton />
       <ActionButtonList />
+      <MultiSenderForm />
       <div className="advice">
         <p>
           This projectId only works on localhost. <br/>
