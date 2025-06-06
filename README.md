@@ -14,3 +14,7 @@ This is a Next.js project.
 
 - [Reown — Docs](https://docs.reown.com)
 - [Next.js — Docs](https://nextjs.org/docs)
+
+## Contracts
+
+This repository includes `contracts/Multisender.sol`, a minimal Solidity contract that enables batch distribution of ETH or ERC-20 tokens. It exposes `disperseEther` and `disperseToken` functions so you can send funds to multiple recipients in a single transaction.
