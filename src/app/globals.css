@@ -46,9 +46,11 @@ section {
 }
 
 .pages {
-  align-items: center;
-  justify-items: center;
+  display: grid;
+  gap: 20px;
+  justify-content: center;
   text-align: center;
+  margin: 20px;
 }
 
 button {
@@ -95,15 +97,29 @@ pre {
 
 .link-button:hover {
   background-color: #333;  /* Darken the background on hover */
-}
-
-.link-button:hover {
-  background-color: white;  /* Change background to white on hover */
-  color: black;  /* Change text color to black on hover */
+  color: white;           /* Maintain text color on hover */
 }
 
 .advice {
   text-align: 'center';
    margin-bottom: 10px;
    line-height: 25px;
+}
+
+.multi-form {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.form-group textarea,
+.form-group select {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }

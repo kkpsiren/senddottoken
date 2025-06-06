@@ -46,6 +46,7 @@ export const MultiSenderForm = () => {
   const [selectedSymbol, setSelectedSymbol] = useState(tokenList[0].symbol)
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const MAX_RETRIES = 15
 
   const selectedToken = tokenList.find(t => t.symbol === selectedSymbol)!
 
@@ -136,14 +137,20 @@ export const MultiSenderForm = () => {
       setStatus(`Transaction sent: https://etherscan.io/tx/${truncated}`)
 
       let receipt = null
-      while (!receipt) {
+      let retries = 0
+      while (!receipt && retries < MAX_RETRIES) {
         receipt = await walletProvider.request({
           method: 'eth_getTransactionReceipt',
           params: [hash]
         })
         if (!receipt) {
           await new Promise((res) => setTimeout(res, 2000))
+          retries++
         }
+      }
+      if (!receipt) {
+        setError('Transaction not confirmed. Please check the explorer.')
+        return
       }
       setStatus(`Transaction confirmed: https://etherscan.io/tx/${truncated}`)
     } catch (err: any) {
@@ -154,9 +161,11 @@ export const MultiSenderForm = () => {
   if (!isConnected) return null
 
   return (
-    <form onSubmit={handleSubmit} style={{ margin: '20px' }}>
-      <div>
+    <form onSubmit={handleSubmit} className="multi-form">
+      <div className="form-group">
+        <label htmlFor="token">Token</label>
         <select
+          id="token"
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value)}
         >
@@ -170,8 +179,10 @@ export const MultiSenderForm = () => {
           </span>
         )}
       </div>
-      <div>
+      <div className="form-group">
+        <label htmlFor="entries">Recipients and amounts</label>
         <textarea
+          id="entries"
           placeholder="recipient, amount per line"
           value={entries}
           onChange={(e) => setEntries(e.target.value)}
@@ -184,3 +195,4 @@ export const MultiSenderForm = () => {
     </form>
   )
 }
+
