@@ -25,3 +25,4 @@ This repository includes `contracts/Multisender.sol`, a minimal Solidity contrac
 2. Copy `.env.example` to `.env` and fill in `RPC_URL` and `PRIVATE_KEY` for the target network.
 3. Run `npx hardhat run scripts/deploy.ts --network custom` to deploy.
 4. Copy the printed contract address into `NEXT_PUBLIC_MULTISENDER_ADDRESS` in your `.env` file for the frontend.
+
