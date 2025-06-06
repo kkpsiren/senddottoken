@@ -4,9 +4,6 @@ import { useState, useEffect } from 'react'
 import { encodeFunctionData, parseUnits } from 'viem'
 import { useAppKitProvider, type Provider, useAppKitAccount } from '@reown/appkit/react-core'
 import { multisenderAddress } from '@/config'
-import { lensClient } from '@/lensClient'
-import { evmAddress, type AnyClient } from '@lens-protocol/client'
-import { fetchAccountBalances, fetchAccountsBulk } from '@lens-protocol/client/actions'
 
 const abi = [
   {
@@ -56,77 +53,32 @@ export const MultiSenderForm = () => {
   useEffect(() => {
     if (!address) return
     const fetchBalances = async () => {
-      const result = await fetchAccountBalances(lensClient as unknown as AnyClient, {
-        includeNative: true,
-        account: evmAddress(address),
-        tokens: tokenList.filter((t) => t.address).map((t) => evmAddress(t.address)),
-      })
-
-      if (result.isErr()) {
-        console.error(result.error)
-        return
-      }
-
-      const map: Record<string, bigint> = {}
-      for (const entry of result.value as Array<Record<string, unknown>>) {
-        switch (entry.__typename) {
-          case 'NativeAmount':
-            map[tokenList[0].symbol] = BigInt(entry.value)
-            break
-          case 'Erc20Amount': {
-            const token = tokenList.find(
-              (t) => t.address.toLowerCase() === entry.asset.contract.address.toLowerCase()
-            )
-            if (token) map[token.symbol] = BigInt(entry.value)
-            break
+      const result: Record<string, bigint> = {}
+      for (const t of tokenList) {
+        try {
+          if (!t.address) {
+            const bal = await walletProvider.request({
+              method: 'eth_getBalance',
+              params: [address, 'latest']
+            }) as string
+            result[t.symbol] = BigInt(bal)
+          } else {
+            const data = '0x70a08231' + address.slice(2).padStart(64, '0')
+            const bal = await walletProvider.request({
+              method: 'eth_call',
+              params: [{ to: t.address, data }, 'latest']
+            }) as string
+            result[t.symbol] = BigInt(bal)
           }
+        } catch (err) {
+          console.error(err)
+          result[t.symbol] = 0n
         }
       }
-      setBalances(map)
+      setBalances(result)
     }
     fetchBalances().catch(console.error)
-  }, [address])
-
-  const [accountMap, setAccountMap] = useState<Record<string, { username?: string; picture?: string }>>({})
-
-  useEffect(() => {
-    const addrs = entries
-      .split('\n')
-      .map((l) => l.trim())
-      .filter(Boolean)
-      .map((l) => l.split(',')[0].trim())
-
-    if (addrs.length === 0) {
-      setAccountMap({})
-      return
-    }
-
-    const fetchAccounts = async () => {
-      const result = await fetchAccountsBulk(lensClient as unknown as AnyClient, {
-        addresses: addrs.map((a) => evmAddress(a)),
-      })
-
-      if (result.isErr()) {
-        console.error(result.error)
-        return
-      }
-
-      const map: Record<string, { username?: string; picture?: string }> = {}
-      for (const acc of result.value as Array<Record<string, unknown>>) {
-        const addr = (acc.ownedBy?.address ?? acc.ownedBy).toLowerCase()
-        map[addr] = {
-          username: acc.handle?.localName ?? acc.handle?.fullHandle,
-          picture:
-            acc.metadata?.picture?.raw?.uri ??
-            acc.metadata?.picture?.optimized?.uri ??
-            undefined,
-        }
-      }
-      setAccountMap(map)
-    }
-
-    fetchAccounts().catch(console.error)
-  }, [entries])
+  }, [address, walletProvider])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -230,27 +182,13 @@ export const MultiSenderForm = () => {
       </div>
       <div className="form-group">
         <label htmlFor="entries">Recipients and amounts</label>
-      <textarea
-        id="entries"
-        placeholder="recipient, amount per line"
-        value={entries}
-        onChange={(e) => setEntries(e.target.value)}
-        style={{ width: '300px', height: '100px' }}
-      />
-      {Object.keys(accountMap).length > 0 && (
-        <ul>
-          {Object.entries(accountMap).map(([addr, info]) => (
-            <li key={addr} style={{ display: 'flex', alignItems: 'center' }}>
-              <span>{addr}</span>
-              {info.username && <span style={{ marginLeft: '6px' }}> - {info.username}</span>}
-              {info.picture && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={info.picture} alt={info.username ?? addr} width={20} height={20} style={{ marginLeft: '6px' }} />
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+        <textarea
+          id="entries"
+          placeholder="recipient, amount per line"
+          value={entries}
+          onChange={(e) => setEntries(e.target.value)}
+          style={{ width: '300px', height: '100px' }}
+        />
       </div>
       <button type="submit">Submit</button>
       {status && <p style={{ color: 'green' }}>{status}</p>}
