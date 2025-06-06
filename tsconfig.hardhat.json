@@ -3,8 +3,14 @@
   "compilerOptions": {
     "outDir": "./dist",
     "allowJs": true,
-    "target": "es2020"
+    "target": "es2020",
+    "module": "commonjs"
   },
-  "include": ["./scripts", "./hardhat.config.ts", "./contracts/**/*"],
+  "include": [
+    "./scripts",
+    "./hardhat.config.ts",
+    "./contracts/**/*",
+    "./test/**/*"
+  ],
   "exclude": ["node_modules"]
 }

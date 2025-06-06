@@ -26,3 +26,6 @@ This repository includes `contracts/Multisender.sol`, a minimal Solidity contrac
 3. Run `npx hardhat run scripts/deploy.ts --network custom` to deploy.
 4. Copy the printed contract address into `NEXT_PUBLIC_MULTISENDER_ADDRESS` in your `.env` file for the frontend.
 
+## Testing
+
+Run `npm run test` to execute Hardhat tests. Note that Hardhat downloads the Solidity compiler at runtime, which may fail in restricted networks.

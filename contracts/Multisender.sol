@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 /// @title Multisender - minimal batch sending of ETH and ERC-20 tokens
 /// @notice Allows batching ETH or token transfers in a single transaction.
+/// @notice Minimal ERC-20 interface needed by the contract
+interface IERC20 {
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+}
+
 contract Multisender {
-    /// @notice Minimal ERC-20 interface needed by the contract
-    interface IERC20 {
-        function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-        function transfer(address recipient, uint256 amount) external returns (bool);
-    }
 
     /// @notice Emitted after a batch ETH transfer completes
     event EtherDispersed(address indexed from, uint256 totalAmount, uint256 numRecipients);

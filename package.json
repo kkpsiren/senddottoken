@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "hardhat test"
   },
   "dependencies": {
     "@lens-protocol/client": "^0.0.0-canary-20250430134539",
