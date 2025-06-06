@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "allowJs": true,
+    "target": "es2020"
+  },
+  "include": ["./scripts", "./hardhat.config.ts", "./contracts/**/*"],
+  "exclude": ["node_modules"]
+}
