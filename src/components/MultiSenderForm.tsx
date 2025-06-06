@@ -73,7 +73,8 @@ export const MultiSenderForm = () => {
             }) as string
             result[t.symbol] = BigInt(bal)
           }
-        } catch {
+        } catch (err) {
+          console.error(err)
           result[t.symbol] = 0n
         }
       }
