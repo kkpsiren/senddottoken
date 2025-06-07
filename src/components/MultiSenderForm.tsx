@@ -75,7 +75,7 @@ export const MultiSenderForm = () => {
   }, [entries, selectedToken])
 
   useEffect(() => {
-    if (!address) return
+    if (!address || !walletProvider) return
     const fetchBalances = async () => {
       const result: Record<string, bigint> = {}
       for (const t of tokenList) {
@@ -109,6 +109,12 @@ export const MultiSenderForm = () => {
     setLoading(true)
     setStatus(null)
     setError(null)
+
+    if (!walletProvider) {
+      setError('Wallet provider not available')
+      setLoading(false)
+      return
+    }
 
     if (!multisenderAddress) {
       setError('Multisender address is not configured')
