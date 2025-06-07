@@ -39,6 +39,17 @@ export default function Home() {
         <h2>Debug Info</h2>
         <InfoList />
       </section>
+
+      <div className="advice">
+        <a
+          href="https://github.com/kkpsiren/senddottoken"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-button"
+        >
+          GitHub Repo
+        </a>
+      </div>
     </div>
   );
 }
