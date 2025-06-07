@@ -3,6 +3,7 @@ import { InfoList } from "@/components/InfoList";
 import { ActionButtonList } from "@/components/ActionButtonList";
 import { MultiSenderForm } from "@/components/MultiSenderForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { TxHistory } from "@/components/TxHistory";
 import Image from 'next/image';
 
 export default function Home() {
@@ -26,6 +27,11 @@ export default function Home() {
       <section>
         <h2>Multi&nbsp;Sender</h2>
         <MultiSenderForm />
+      </section>
+
+      <section>
+        <h2>Tx History</h2>
+        <TxHistory />
       </section>
 
       <div className="advice">
