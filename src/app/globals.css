@@ -154,6 +154,15 @@ pre {
   background-color: var(--error);
 }
 
+.error-message {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  color: var(--error);
+  background-color: #ffe6e6;
+}
+
 @keyframes fadein {
   from { opacity: 0; }
   to { opacity: 1; }

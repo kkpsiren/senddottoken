@@ -97,6 +97,7 @@ export const MultiSenderForm = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [txLink, setTxLink] = useState<string | null>(null);
 
   // Token selection
   const selectedToken = tokenList.find((t) => t.symbol === selectedSymbol)!;
@@ -149,6 +150,7 @@ export const MultiSenderForm = () => {
     setLoading(true);
     setStatus(null);
     setError(null);
+    setTxLink(null);
 
     if (!isConnected || !address) {
       setError("Wallet not connected");
@@ -249,7 +251,9 @@ export const MultiSenderForm = () => {
         value: selectedToken.address ? undefined : total,
         account: address as Address,
       });
-      setStatus(`Transaction sent: https://explorer.lens.xyz/tx/${hash}`);
+      const url = `https://explorer.lens.xyz/tx/${hash}`;
+      setTxLink(url);
+      setStatus(`Transaction sent: ${url}`);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -314,6 +318,15 @@ export const MultiSenderForm = () => {
       <button type="submit" disabled={loading || !isConnected}>
         {loading ? <Spinner /> : "Submit"}
       </button>
+      {txLink && (
+        <p>
+          Transaction:{" "}
+          <a href={txLink} target="_blank" rel="noopener noreferrer">
+            {txLink}
+          </a>
+        </p>
+      )}
+      {error && <p className="error-message">Error: {error}</p>}
       <Toast message={status} type="success" onClose={() => setStatus(null)} />
       <Toast message={error} type="error" onClose={() => setError(null)} />
     </form>
