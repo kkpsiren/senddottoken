@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { encodeFunctionData, parseUnits, type Address } from "viem";
 import { useAppKitAccount } from "@reown/appkit/react-core";
 import { multisenderAddress } from "@/config";
@@ -8,6 +8,7 @@ import { Spinner } from "./Spinner";
 import { Toast } from "./Toast";
 import { useClientMounted } from "@/hooks/useClientMount";
 import { useSendTransaction, useBalance } from "wagmi";
+import { resolveRecipient } from "@/utils/lensAccounts";
 
 const abi = [
   {
@@ -72,7 +73,6 @@ export const MultiSenderForm = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const MAX_RETRIES = 15;
 
   // Token selection
   const selectedToken = tokenList.find((t) => t.symbol === selectedSymbol)!;
@@ -134,19 +134,26 @@ export const MultiSenderForm = () => {
 
     const recips: Address[] = [];
     const values: bigint[] = [];
-    entries
+    const lines = entries
       .split("\n")
       .map((l) => l.trim())
-      .filter(Boolean)
-      .forEach((line) => {
-        const [r, a] = line.split(",");
-        if (r && a) {
-          recips.push(r.trim() as Address);
+      .filter(Boolean);
+    for (const line of lines) {
+      const [r, a] = line.split(",");
+      if (r && a) {
+        try {
+          const resolved = await resolveRecipient(r.trim());
+          recips.push(resolved as Address);
           values.push(
             parseUnits(a.trim() as `${number}`, selectedToken.decimals)
           );
+        } catch {
+          setError(`Invalid recipient: ${r.trim()}`);
+          setLoading(false);
+          return;
         }
-      });
+      }
+    }
 
     if (recips.length === 0) {
       setError("No valid entries");
