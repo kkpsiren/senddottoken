@@ -10,6 +10,7 @@ import { useClientMounted } from "@/hooks/useClientMount";
 import { useSendTransaction, useBalance } from "wagmi";
 import { resolveRecipient } from "@/utils/lensAccounts";
 import { readContract, waitForTransactionReceipt } from "wagmi/actions";
+import { tokenList, TokenSymbol } from "@/constants/tokens";
 
 const abi = [
   {
@@ -58,32 +59,15 @@ const erc20Abi = [
   },
 ] as const;
 
-const tokenList = [
-  { symbol: "GHO", address: "", decimals: 18 },
-  {
-    symbol: "WGHO",
-    address: "0x6bDc36E20D267Ff0dd6097799f82e78907105e2F",
-    decimals: 18,
-  },
-  {
-    symbol: "BONSAI",
-    address: "0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82",
-    decimals: 18,
-  },
-  {
-    symbol: "WETH",
-    address: "0xE5ecd226b3032910CEaa43ba92EE8232f8237553",
-    decimals: 18,
-  },
-  {
-    symbol: "USDC",
-    address: "0x88F08E304EC4f90D644Cec3Fb69b8aD414acf884",
-    decimals: 6,
-  },
-] as const;
+const tipRecipient = process.env.NEXT_PUBLIC_TIP_RECIPIENT;
 
-// Define a type for all token symbols
-type TokenSymbol = (typeof tokenList)[number]["symbol"];
+// Utility to truncate messages
+const truncateMsg = (msg: string | null, maxLen = 60) => {
+  if (!msg) return msg;
+  if (msg.toLowerCase().includes("user rejected"))
+    return "User rejected transaction";
+  return msg.length > maxLen ? msg.slice(0, maxLen) + "…" : msg;
+};
 
 export const MultiSenderForm = () => {
   const { address, isConnected } = useAppKitAccount();
@@ -98,6 +82,11 @@ export const MultiSenderForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [txLink, setTxLink] = useState<string | null>(null);
+  const [tipAmount, setTipAmount] = useState("");
+  const [tipStatus, setTipStatus] = useState<string | null>(null);
+  const [tipError, setTipError] = useState<string | null>(null);
+  const [tipLoading, setTipLoading] = useState(false);
+  const [tipTxLink, setTipTxLink] = useState<string | null>(null);
 
   // Token selection
   const selectedToken = tokenList.find((t) => t.symbol === selectedSymbol)!;
@@ -136,8 +125,20 @@ export const MultiSenderForm = () => {
           }
         }
       });
+    // Add tip to total if present and valid
+    if (
+      tipRecipient &&
+      tipAmount &&
+      !isNaN(Number(tipAmount)) &&
+      Number(tipAmount) > 0
+    ) {
+      try {
+        total += parseUnits(tipAmount, selectedToken.decimals);
+        count++;
+      } catch {}
+    }
     return { count, total };
-  }, [entries, selectedToken]);
+  }, [entries, selectedToken, tipAmount, tipRecipient]);
 
   const userBalance = selectedToken.address
     ? tokenBalance?.value ?? 0n
@@ -184,6 +185,18 @@ export const MultiSenderForm = () => {
           return;
         }
       }
+    }
+    // Add tip as an extra recipient if set
+    if (
+      tipRecipient &&
+      tipAmount &&
+      !isNaN(Number(tipAmount)) &&
+      Number(tipAmount) > 0
+    ) {
+      try {
+        recips.push(tipRecipient as Address);
+        values.push(parseUnits(tipAmount, selectedToken.decimals));
+      } catch {}
     }
 
     if (recips.length === 0) {
@@ -299,10 +312,10 @@ export const MultiSenderForm = () => {
         <label htmlFor="entries">Recipients and amounts</label>
         <textarea
           id="entries"
-          placeholder="recipient, amount per line"
+          placeholder={`recipient, amount per line\nstani, 1\n0xFEBC231959550fFecd1AD1Ae22A3d6Bb55471B6a, 1\norb, 1\n`}
           value={entries}
           onChange={(e) => setEntries(e.target.value)}
-          style={{ width: "300px", height: "100px" }}
+          style={{ width: "400px", height: "100px" }}
         />
       </div>
       <div className="summary">
@@ -318,6 +331,25 @@ export const MultiSenderForm = () => {
       <button type="submit" disabled={loading || !isConnected}>
         {loading ? <Spinner /> : "Submit"}
       </button>
+      {/* Tip section */}
+      {tipRecipient && (
+        <div className="tip-section" style={{ marginTop: 24 }}>
+          <label htmlFor="tip-amount">Tip developer</label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              id="tip-amount"
+              type="number"
+              min="0"
+              step={1}
+              placeholder={`Amount (${selectedSymbol})`}
+              value={tipAmount}
+              onChange={(e) => setTipAmount(e.target.value)}
+              style={{ width: 120 }}
+              disabled={loading}
+            />
+          </div>
+        </div>
+      )}
       {txLink && (
         <p>
           Transaction:{" "}
@@ -326,9 +358,37 @@ export const MultiSenderForm = () => {
           </a>
         </p>
       )}
-      {error && <p className="error-message">Error: {error}</p>}
-      <Toast message={status} type="success" onClose={() => setStatus(null)} />
-      <Toast message={error} type="error" onClose={() => setError(null)} />
+      {/* Error display, skip if user rejected */}
+      {error &&
+        !error.toLowerCase().includes("user rejected") &&
+        (() => {
+          const truncated = truncateMsg(error);
+          return (
+            <>
+              <p
+                className="error-message"
+                title={truncated !== error ? error : undefined}
+              >
+                Error: {truncated}
+              </p>
+              {truncated !== error && (
+                <div style={{ fontSize: "0.85em", color: "#888" }}>
+                  Full error: {error}
+                </div>
+              )}
+            </>
+          );
+        })()}
+      <Toast
+        message={truncateMsg(status)}
+        type="success"
+        onClose={() => setStatus(null)}
+      />
+      <Toast
+        message={truncateMsg(error)}
+        type="error"
+        onClose={() => setError(null)}
+      />
     </form>
   );
 };
