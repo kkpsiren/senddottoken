@@ -132,6 +132,10 @@ pre {
   border-radius: 4px;
 }
 
+.summary {
+  margin-top: 10px;
+}
+
 .toast {
   position: fixed;
   right: 20px;

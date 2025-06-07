@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { encodeFunctionData, parseUnits } from 'viem'
 import { useAppKitProvider, type Provider, useAppKitAccount } from '@reown/appkit/react-core'
 import { multisenderAddress } from '@/config'
@@ -52,6 +52,27 @@ export const MultiSenderForm = () => {
   const MAX_RETRIES = 15
 
   const selectedToken = tokenList.find(t => t.symbol === selectedSymbol)!
+
+  const summary = useMemo(() => {
+    let count = 0
+    let total = 0n
+    entries
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        const [r, a] = line.split(',')
+        if (r && a) {
+          count++
+          try {
+            total += parseUnits(a.trim() as `${number}`, selectedToken.decimals)
+          } catch {
+            // ignore invalid amounts
+          }
+        }
+      })
+    return { count, total }
+  }, [entries, selectedToken])
 
   useEffect(() => {
     if (!address) return
@@ -199,6 +220,13 @@ export const MultiSenderForm = () => {
           onChange={(e) => setEntries(e.target.value)}
           style={{ width: '300px', height: '100px' }}
         />
+      </div>
+      <div className="summary">
+        <p>Total recipients: {summary.count}</p>
+        <p>
+          Total amount: {Number(summary.total) / 10 ** selectedToken.decimals}{' '}
+          {selectedSymbol}
+        </p>
       </div>
       <button type="submit" disabled={loading}>
         {loading ? <Spinner /> : 'Submit'}
