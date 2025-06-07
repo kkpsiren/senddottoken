@@ -151,7 +151,7 @@ export const MultiSenderForm = () => {
       const tx = {
         to: multisenderAddress,
         data,
-        value: selectedToken.address ? '0x0' : total.toString(16)
+        value: selectedToken.address ? '0x0' : `0x${total.toString(16)}`
       }
 
       const hash: string = await walletProvider.request({
@@ -159,8 +159,7 @@ export const MultiSenderForm = () => {
         params: [tx]
       })
 
-      const truncated = `${hash.slice(0, 6)}...${hash.slice(-4)}`
-      setStatus(`Transaction sent: https://etherscan.io/tx/${truncated}`)
+      setStatus(`Transaction sent: https://etherscan.io/tx/${hash}`)
 
       let receipt = null
       let retries = 0
@@ -178,7 +177,7 @@ export const MultiSenderForm = () => {
         setError('Transaction not confirmed. Please check the explorer.')
         return
       }
-      setStatus(`Transaction confirmed: https://etherscan.io/tx/${truncated}`)
+      setStatus(`Transaction confirmed: https://etherscan.io/tx/${hash}`)
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message)
