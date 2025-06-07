@@ -24,3 +24,8 @@ export const wagmiAdapter = new WagmiAdapter({
 });
 
 export const config = wagmiAdapter.wagmiConfig;
+
+export const multisenderAddress = process.env.NEXT_PUBLIC_MULTISENDER_ADDRESS;
+if (!multisenderAddress) {
+  throw new Error("Multisender address is not defined");
+}

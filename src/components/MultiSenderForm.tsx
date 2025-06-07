@@ -1,201 +1,208 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useMemo } from 'react'
-import { encodeFunctionData, parseUnits } from 'viem'
-import { useAppKitProvider, type Provider, useAppKitAccount } from '@reown/appkit/react-core'
-import { multisenderAddress } from '@/config'
-import { Spinner } from './Spinner'
-import { Toast } from './Toast'
+import { useState, useEffect, useMemo } from "react";
+import { encodeFunctionData, parseUnits, type Address } from "viem";
+import { useAppKitAccount } from "@reown/appkit/react-core";
+import { multisenderAddress } from "@/config";
+import { Spinner } from "./Spinner";
+import { Toast } from "./Toast";
+import { useClientMounted } from "@/hooks/useClientMount";
+import { useSendTransaction, useBalance } from "wagmi";
 
 const abi = [
   {
-    name: 'disperseEther',
-    type: 'function',
-    stateMutability: 'payable',
+    name: "disperseEther",
+    type: "function",
+    stateMutability: "payable",
     inputs: [
-      { name: 'recipients', type: 'address[]' },
-      { name: 'amounts', type: 'uint256[]' }
+      { name: "recipients", type: "address[]" },
+      { name: "amounts", type: "uint256[]" },
     ],
-    outputs: []
+    outputs: [],
   },
   {
-    name: 'disperseToken',
-    type: 'function',
-    stateMutability: 'nonpayable',
+    name: "disperseToken",
+    type: "function",
+    stateMutability: "nonpayable",
     inputs: [
-      { name: 'token', type: 'address' },
-      { name: 'recipients', type: 'address[]' },
-      { name: 'amounts', type: 'uint256[]' }
+      { name: "token", type: "address" },
+      { name: "recipients", type: "address[]" },
+      { name: "amounts", type: "uint256[]" },
     ],
-    outputs: []
-  }
-] as const
+    outputs: [],
+  },
+] as const;
 
 const tokenList = [
-  { symbol: 'GHO', address: '', decimals: 18 },
-  { symbol: 'WGHO', address: '0x6bDc36E20D267Ff0dd6097799f82e78907105e2F', decimals: 18 },
-  { symbol: 'BONSAI', address: '0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82', decimals: 18 },
-  { symbol: 'WETH', address: '0xE5ecd226b3032910CEaa43ba92EE8232f8237553', decimals: 18 },
-  { symbol: 'USDC', address: '0x88F08E304EC4f90D644Cec3Fb69b8aD414acf884', decimals: 6 },
-] as const
+  { symbol: "GHO", address: "", decimals: 18 },
+  {
+    symbol: "WGHO",
+    address: "0x6bDc36E20D267Ff0dd6097799f82e78907105e2F",
+    decimals: 18,
+  },
+  {
+    symbol: "BONSAI",
+    address: "0xB0588f9A9cADe7CD5f194a5fe77AcD6A58250f82",
+    decimals: 18,
+  },
+  {
+    symbol: "WETH",
+    address: "0xE5ecd226b3032910CEaa43ba92EE8232f8237553",
+    decimals: 18,
+  },
+  {
+    symbol: "USDC",
+    address: "0x88F08E304EC4f90D644Cec3Fb69b8aD414acf884",
+    decimals: 6,
+  },
+] as const;
+
+// Define a type for all token symbols
+type TokenSymbol = (typeof tokenList)[number]["symbol"];
 
 export const MultiSenderForm = () => {
-  const { walletProvider } = useAppKitProvider<Provider>('eip155')
-  const { address, isConnected } = useAppKitAccount()
+  const { address, isConnected } = useAppKitAccount();
+  const mounted = useClientMounted();
 
-  const [entries, setEntries] = useState('')
-  const [balances, setBalances] = useState<Record<string, bigint>>({})
-  const [selectedSymbol, setSelectedSymbol] = useState(tokenList[0].symbol)
-  const [status, setStatus] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const MAX_RETRIES = 15
+  // State
+  const [entries, setEntries] = useState("");
+  const [selectedSymbol, setSelectedSymbol] = useState<TokenSymbol>(
+    tokenList[0].symbol
+  );
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const MAX_RETRIES = 15;
 
-  const selectedToken = tokenList.find(t => t.symbol === selectedSymbol)!
+  // Token selection
+  const selectedToken = tokenList.find((t) => t.symbol === selectedSymbol)!;
 
+  // Wagmi hooks for balance
+  const { data: nativeBalance } = useBalance({
+    address: address as Address,
+  });
+  const { data: tokenBalance } = useBalance({
+    address: address as Address,
+    token: selectedToken.address as Address,
+  });
+
+  // Wagmi send transaction
+  const { sendTransactionAsync } = useSendTransaction();
+
+  // Summary
   const summary = useMemo(() => {
-    let count = 0
-    let total = 0n
+    let count = 0;
+    let total = 0n;
     entries
-      .split('\n')
+      .split("\n")
       .map((l) => l.trim())
       .filter(Boolean)
       .forEach((line) => {
-        const [r, a] = line.split(',')
+        const [r, a] = line.split(",");
         if (r && a) {
-          count++
+          count++;
           try {
-            total += parseUnits(a.trim() as `${number}`, selectedToken.decimals)
+            total += parseUnits(
+              a.trim() as `${number}`,
+              selectedToken.decimals
+            );
           } catch {
             // ignore invalid amounts
           }
         }
-      })
-    return { count, total }
-  }, [entries, selectedToken])
+      });
+    return { count, total };
+  }, [entries, selectedToken]);
 
-  useEffect(() => {
-    if (!address || !walletProvider) return
-    const fetchBalances = async () => {
-      const result: Record<string, bigint> = {}
-      for (const t of tokenList) {
-        try {
-          if (!t.address) {
-            const bal = await walletProvider.request({
-              method: 'eth_getBalance',
-              params: [address, 'latest']
-            }) as string
-            result[t.symbol] = BigInt(bal)
-          } else {
-            const data = '0x70a08231' + address.slice(2).padStart(64, '0')
-            const bal = await walletProvider.request({
-              method: 'eth_call',
-              params: [{ to: t.address, data }, 'latest']
-            }) as string
-            result[t.symbol] = BigInt(bal)
-          }
-        } catch (err) {
-          console.error(err)
-          result[t.symbol] = 0n
-        }
-      }
-      setBalances(result)
-    }
-    fetchBalances().catch(console.error)
-  }, [address, walletProvider])
-
+  // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setStatus(null)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setStatus(null);
+    setError(null);
 
-    if (!walletProvider) {
-      setError('Wallet provider not available')
-      setLoading(false)
-      return
+    if (!isConnected || !address) {
+      setError("Wallet not connected");
+      setLoading(false);
+      return;
     }
-
     if (!multisenderAddress) {
-      setError('Multisender address is not configured')
-      return
+      setError("Multisender address is not configured");
+      setLoading(false);
+      return;
     }
 
-    const recips: string[] = []
-    const values: bigint[] = []
+    const recips: Address[] = [];
+    const values: bigint[] = [];
     entries
-      .split('\n')
+      .split("\n")
       .map((l) => l.trim())
       .filter(Boolean)
       .forEach((line) => {
-        const [r, a] = line.split(',')
+        const [r, a] = line.split(",");
         if (r && a) {
-          recips.push(r.trim())
-          values.push(parseUnits(a.trim() as `${number}`, selectedToken.decimals))
+          recips.push(r.trim() as Address);
+          values.push(
+            parseUnits(a.trim() as `${number}`, selectedToken.decimals)
+          );
         }
-      })
+      });
 
     if (recips.length === 0) {
-      setError('No valid entries')
-      return
+      setError("No valid entries");
+      setLoading(false);
+      return;
     }
 
-    const total = values.reduce((s, v) => s + v, 0n)
-    const bal = balances[selectedSymbol] || 0n
+    const total = values.reduce((s, v) => s + v, 0n);
+    const bal = selectedToken.address
+      ? tokenBalance?.value ?? 0n
+      : nativeBalance?.value ?? 0n;
     if (bal < total) {
-      setError('Insufficient balance')
-      return
+      setError("Insufficient balance");
+      setLoading(false);
+      return;
     }
 
     try {
-      const data = encodeFunctionData({
-        abi,
-        functionName: selectedToken.address ? 'disperseToken' : 'disperseEther',
-        args: selectedToken.address ? [selectedToken.address, recips, values] : [recips, values]
-      })
+      // Prepare calldata for disperseEther or disperseToken
+      let data: `0x${string}`;
+      if (selectedToken.address) {
+        // disperseToken(address token, address[] recipients, uint256[] amounts)
+        data = encodeFunctionData({
+          abi,
+          functionName: "disperseToken",
+          args: [selectedToken.address as Address, recips, values],
+        });
+      } else {
+        // disperseEther(address[] recipients, uint256[] amounts)
+        data = encodeFunctionData({
+          abi,
+          functionName: "disperseEther",
+          args: [recips, values],
+        });
+      }
 
-      const tx = {
-        to: multisenderAddress,
+      // Send transaction
+      const hash = await sendTransactionAsync({
+        to: multisenderAddress as Address,
         data,
-        value: selectedToken.address ? '0x0' : `0x${total.toString(16)}`
-      }
-
-      const hash: string = await walletProvider.request({
-        method: 'eth_sendTransaction',
-        params: [tx]
-      })
-
-      setStatus(`Transaction sent: https://etherscan.io/tx/${hash}`)
-
-      let receipt = null
-      let retries = 0
-      while (!receipt && retries < MAX_RETRIES) {
-        receipt = await walletProvider.request({
-          method: 'eth_getTransactionReceipt',
-          params: [hash]
-        })
-        if (!receipt) {
-          await new Promise((res) => setTimeout(res, 2000))
-          retries++
-        }
-      }
-      if (!receipt) {
-        setError('Transaction not confirmed. Please check the explorer.')
-        return
-      }
-      setStatus(`Transaction confirmed: https://etherscan.io/tx/${hash}`)
+        value: selectedToken.address ? undefined : total,
+        account: address as Address,
+      });
+      setStatus(`Transaction sent: https://explorer.lens.xyz/tx/${hash}`);
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message)
+        setError(err.message);
       } else {
-        setError('Transaction failed')
+        setError("Transaction failed");
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  if (!isConnected) return null
+  if (!mounted) return null;
 
   return (
     <form onSubmit={handleSubmit} className="multi-form">
@@ -204,15 +211,24 @@ export const MultiSenderForm = () => {
         <select
           id="token"
           value={selectedSymbol}
-          onChange={(e) => setSelectedSymbol(e.target.value)}
+          onChange={(e) => setSelectedSymbol(e.target.value as TokenSymbol)}
         >
           {tokenList.map((t) => (
-            <option key={t.symbol} value={t.symbol}>{t.symbol}</option>
+            <option key={t.symbol} value={t.symbol}>
+              {t.symbol}
+            </option>
           ))}
         </select>
-        {balances[selectedSymbol] !== undefined && (
-          <span style={{ marginLeft: '10px' }}>
-            Balance: {Number(balances[selectedSymbol]) / 10 ** selectedToken.decimals}
+        {isConnected && (
+          <span style={{ marginLeft: "10px" }}>
+            Balance:{" "}
+            {selectedToken.address
+              ? tokenBalance
+                ? Number(tokenBalance.value) / 10 ** selectedToken.decimals
+                : "-"
+              : nativeBalance
+              ? Number(nativeBalance.value) / 10 ** selectedToken.decimals
+              : "-"}
           </span>
         )}
       </div>
@@ -223,22 +239,21 @@ export const MultiSenderForm = () => {
           placeholder="recipient, amount per line"
           value={entries}
           onChange={(e) => setEntries(e.target.value)}
-          style={{ width: '300px', height: '100px' }}
+          style={{ width: "300px", height: "100px" }}
         />
       </div>
       <div className="summary">
         <p>Total recipients: {summary.count}</p>
         <p>
-          Total amount: {Number(summary.total) / 10 ** selectedToken.decimals}{' '}
+          Total amount: {Number(summary.total) / 10 ** selectedToken.decimals}{" "}
           {selectedSymbol}
         </p>
       </div>
-      <button type="submit" disabled={loading}>
-        {loading ? <Spinner /> : 'Submit'}
+      <button type="submit" disabled={loading || !isConnected}>
+        {loading ? <Spinner /> : "Submit"}
       </button>
       <Toast message={status} type="success" onClose={() => setStatus(null)} />
       <Toast message={error} type="error" onClose={() => setError(null)} />
     </form>
-  )
-}
-
+  );
+};
