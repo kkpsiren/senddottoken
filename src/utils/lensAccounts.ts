@@ -1,8 +1,8 @@
-import { PublicClient, testnet, evmAddress } from "@lens-protocol/client";
+import { PublicClient, mainnet, evmAddress } from "@lens-protocol/client";
 import { fetchAccountsBulk, fetchAccount } from "@lens-protocol/client/actions";
 
 const client = PublicClient.create({
-  environment: testnet,
+  environment: mainnet,
   origin: "https://send.token",
 });
 
@@ -12,10 +12,11 @@ export interface LensAccountInfo {
   picture: string | null;
 }
 
-export const LENS_NAMESPACE =
-  "0xFBEdC5C278cc01A843D161d5469202Fe4EDC99E4";
+export const LENS_NAMESPACE = "0x1aA55B9042f08f45825dC4b651B64c9F98Af4615";
 
-export async function mapAddressesToAccounts(addresses: string[]): Promise<LensAccountInfo[]> {
+export async function mapAddressesToAccounts(
+  addresses: string[]
+): Promise<LensAccountInfo[]> {
   const result = await fetchAccountsBulk(client, {
     addresses: addresses.map((a) => evmAddress(a)),
   });
