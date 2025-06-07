@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-import './globals.css';
-import ContextProvider from '@/context'
+import "./globals.css";
+import ContextProvider from "@/context";
 
 export const metadata: Metadata = {
   title: "AppKit in Next.js + ethers",
@@ -13,7 +13,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   return (
     <html lang="en">
       <body>
@@ -22,4 +21,3 @@ export default async function RootLayout({
     </html>
   );
 }
-

@@ -88,7 +88,7 @@ export const TxHistory = () => {
           ...etherLogs.map((log) => ({ ...log, tokenAddress: undefined })),
           ...tokenLogs.map((log) => ({
             ...log,
-            tokenAddress: (log as any).args.token,
+            tokenAddress: (log as { args: { token: string } }).args.token,
           })),
         ];
         const detailed = await Promise.all(
@@ -116,7 +116,7 @@ export const TxHistory = () => {
                 .totalAmount,
               recipients: (log as { args: { numRecipients: bigint } }).args
                 .numRecipients,
-              tokenAddress: (log as any).tokenAddress,
+              tokenAddress: (log as { tokenAddress?: string }).tokenAddress,
               feeEth,
             } as TxInfo & { tokenAddress?: string; feeEth?: string };
           })
@@ -129,7 +129,7 @@ export const TxHistory = () => {
       }
     }
     fetchLogs();
-  }, []);
+  }, [publicClient]);
 
   if (!isConnected) return null;
   if (!txs.length) return <p>No transactions found.</p>;

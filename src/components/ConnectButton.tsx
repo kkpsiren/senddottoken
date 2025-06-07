@@ -13,7 +13,7 @@ export const ConnectButton = () => {
   const handleDisconnect = async () => {
     try {
       await disconnect();
-    } catch (error) {
+    } catch {
       // Optionally handle error
     }
   };

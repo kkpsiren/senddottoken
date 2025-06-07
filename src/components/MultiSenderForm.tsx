@@ -61,14 +61,6 @@ const erc20Abi = [
 
 const tipRecipient = process.env.NEXT_PUBLIC_TIP_RECIPIENT;
 
-// Utility to truncate messages
-const truncateMsg = (msg: string | null, maxLen = 60) => {
-  if (!msg) return msg;
-  if (msg.toLowerCase().includes("user rejected"))
-    return "User rejected transaction";
-  return msg.length > maxLen ? msg.slice(0, maxLen) + "…" : msg;
-};
-
 export const MultiSenderForm = () => {
   const { address, isConnected } = useAppKitAccount();
   const mounted = useClientMounted();
@@ -83,10 +75,6 @@ export const MultiSenderForm = () => {
   const [loading, setLoading] = useState(false);
   const [txLink, setTxLink] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState("");
-  const [tipStatus, setTipStatus] = useState<string | null>(null);
-  const [tipError, setTipError] = useState<string | null>(null);
-  const [tipLoading, setTipLoading] = useState(false);
-  const [tipTxLink, setTipTxLink] = useState<string | null>(null);
 
   // Token selection
   const selectedToken = tokenList.find((t) => t.symbol === selectedSymbol)!;
@@ -138,12 +126,11 @@ export const MultiSenderForm = () => {
       } catch {}
     }
     return { count, total };
-  }, [entries, selectedToken, tipAmount, tipRecipient]);
+  }, [entries, selectedToken, tipAmount]);
 
   const userBalance = selectedToken.address
     ? tokenBalance?.value ?? 0n
     : nativeBalance?.value ?? 0n;
-  const insufficientBalance = userBalance < summary.total;
 
   const prettyTotal = useMemo(() => {
     return `${(
