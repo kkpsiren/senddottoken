@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePublicClient } from "wagmi";
-import { multisenderAddress } from "@/config";
 import { parseAbiItem, type Address } from "viem";
+import { multisenderAddress } from "@/config";
 import { tokenList } from "@/constants/tokens";
 
 interface TxInfo {
@@ -62,7 +62,9 @@ function formatDateTime(ts: number): string {
 
 export const TxHistory = () => {
   const publicClient = usePublicClient();
-  const [txs, setTxs] = useState<(TxInfo & { tokenAddress?: string })[]>([]);
+  const [txs, setTxs] = useState<
+    (TxInfo & { tokenAddress?: string; feeEth?: string })[]
+  >([]);
 
   useEffect(() => {
     async function fetchLogs() {
@@ -90,6 +92,19 @@ export const TxHistory = () => {
             const block = await publicClient.getBlock({
               blockNumber: log.blockNumber,
             });
+            let feeEth: string | undefined = undefined;
+            try {
+              const receipt = await publicClient.getTransactionReceipt({
+                hash: log.transactionHash,
+              });
+              if (receipt && receipt.gasUsed && receipt.effectiveGasPrice) {
+                const fee =
+                  BigInt(receipt.gasUsed) * BigInt(receipt.effectiveGasPrice);
+                feeEth = (Number(fee) / 1e18).toLocaleString(undefined, {
+                  maximumFractionDigits: 6,
+                });
+              }
+            } catch {}
             return {
               hash: log.transactionHash,
               timestamp: Number(block.timestamp),
@@ -98,7 +113,8 @@ export const TxHistory = () => {
               recipients: (log as { args: { numRecipients: bigint } }).args
                 .numRecipients,
               tokenAddress: (log as any).tokenAddress,
-            } as TxInfo & { tokenAddress?: string };
+              feeEth,
+            } as TxInfo & { tokenAddress?: string; feeEth?: string };
           })
         );
         detailed.sort((a, b) => b.timestamp - a.timestamp);
@@ -108,18 +124,19 @@ export const TxHistory = () => {
       }
     }
     fetchLogs();
-  }, [publicClient]);
+  }, []);
 
   if (!txs.length) return <p>No transactions found.</p>;
 
   return (
-    <table>
+    <table className="table">
       <thead>
         <tr>
           <th>Time</th>
           <th>Total</th>
           <th>Recipients</th>
           <th>TxHash</th>
+          <th className="text-right">Fee</th>
         </tr>
       </thead>
       <tbody>
@@ -145,6 +162,11 @@ export const TxHistory = () => {
                 >
                   {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
                 </a>
+              </td>
+              <td className="text-right">
+                {typeof tx.feeEth === "string" && tx.feeEth !== ""
+                  ? `${tx.feeEth} $GHO`
+                  : "-"}
               </td>
             </tr>
           );

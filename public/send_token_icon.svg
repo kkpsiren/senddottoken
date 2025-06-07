@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none" stroke="#0A84FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="20" ry="20" />
+  <!-- horizontal line -->
+  <line x1="28" y1="64" x2="72" y2="64" />
+  <!-- arrow head -->
+  <polyline points="60,48 84,64 60,80" />
+  <!-- origin dot -->
+  <circle cx="88" cy="92" r="6" fill="#0A84FF" stroke="none" />
+</svg>

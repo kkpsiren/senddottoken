@@ -14,6 +14,7 @@
     "@lens-protocol/client": "^0.0.0-canary-20250430134539",
     "@reown/appkit": "1.7.8",
     "@reown/appkit-adapter-wagmi": "^1.7.8",
+    "lucide-react": "^0.513.0",
     "next": "15.3.0",
     "react": "19.0.0",
     "react-dom": "19.0.0"

@@ -145,6 +145,15 @@ export const MultiSenderForm = () => {
     : nativeBalance?.value ?? 0n;
   const insufficientBalance = userBalance < summary.total;
 
+  const prettyTotal = useMemo(() => {
+    return `${(
+      Number(summary.total) /
+      10 ** selectedToken.decimals
+    ).toLocaleString(undefined, {
+      maximumFractionDigits: 6,
+    })} $${selectedSymbol}`;
+  }, [summary.total, selectedToken.decimals, selectedSymbol]);
+
   // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,11 +290,13 @@ export const MultiSenderForm = () => {
   if (!mounted) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="multi-form">
-      <div className="form-group">
+    <form onSubmit={handleSubmit} className="card field">
+      {/* === 1. Token selector row === */}
+      <div className="field-row">
         <label htmlFor="token">Token</label>
         <select
           id="token"
+          className="select"
           value={selectedSymbol}
           onChange={(e) => setSelectedSymbol(e.target.value as TokenSymbol)}
         >
@@ -296,99 +307,84 @@ export const MultiSenderForm = () => {
           ))}
         </select>
         {isConnected && (
-          <span style={{ marginLeft: "10px" }}>
+          <span className="total-line" style={{ fontSize: 12 }}>
             Balance:{" "}
             {selectedToken.address
-              ? tokenBalance
-                ? Number(tokenBalance.value) / 10 ** selectedToken.decimals
-                : "-"
-              : nativeBalance
-              ? Number(nativeBalance.value) / 10 ** selectedToken.decimals
-              : "-"}
+              ? tokenBalance?.formatted
+              : nativeBalance?.formatted}
+            {" $"}
+            {selectedSymbol}
           </span>
         )}
       </div>
-      <div className="form-group">
+
+      {/* === 2. Recipients textarea === */}
+      <div className="field">
         <label htmlFor="entries">Recipients and amounts</label>
         <textarea
           id="entries"
-          placeholder={`recipient, amount per line\nstani, 1\n0xFEBC231959550fFecd1AD1Ae22A3d6Bb55471B6a, 1\norb, 1\n`}
+          className="textarea"
           value={entries}
           onChange={(e) => setEntries(e.target.value)}
-          style={{ width: "400px", height: "100px" }}
+          placeholder={"0x123...,1\n0x456...,2\nkipto,1\nstani,2"}
         />
       </div>
-      <div className="summary">
-        <p>Total recipients: {summary.count}</p>
-        <p>
-          Total amount: {Number(summary.total) / 10 ** selectedToken.decimals}{" "}
-          {selectedSymbol}
-        </p>
-        {insufficientBalance && (
-          <p style={{ color: "orange" }}>Warning: total exceeds balance</p>
-        )}
+
+      {/* === 3. Totals === */}
+      <div className="total-line">
+        <span>Total recipients: {summary.count}</span>
+        <span>Total amount: {prettyTotal}</span>
       </div>
-      <button type="submit" disabled={loading || !isConnected}>
-        {loading ? <Spinner /> : "Submit"}
-      </button>
-      {/* Tip section */}
+
+      {/* === 4. Optional tip === */}
       {tipRecipient && (
-        <div className="tip-section" style={{ marginTop: 24 }}>
-          <label htmlFor="tip-amount">Tip developer</label>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              id="tip-amount"
-              type="number"
-              min="0"
-              step={1}
-              placeholder={`Amount (${selectedSymbol})`}
-              value={tipAmount}
-              onChange={(e) => setTipAmount(e.target.value)}
-              style={{ width: 120 }}
-              disabled={loading}
-            />
-          </div>
+        <div className="field-row" style={{ marginTop: 8 }}>
+          <label htmlFor="tip-amount">
+            Tip developer <span style={{ fontWeight: 400 }}>(optional)</span>
+          </label>
+          <input
+            id="tip-amount"
+            type="number"
+            className="select"
+            value={tipAmount}
+            onChange={(e) => setTipAmount(e.target.value)}
+            min="0"
+            step="any"
+            placeholder="0"
+          />
         </div>
       )}
-      {txLink && (
-        <p>
-          Transaction:{" "}
-          <a href={txLink} target="_blank" rel="noopener noreferrer">
-            {txLink}
-          </a>
-        </p>
+
+      {/* === 5. Primary action === */}
+      <button
+        className="btn-primary"
+        type="submit"
+        disabled={loading || !isConnected}
+      >
+        {loading ? <Spinner /> : "Send"}
+      </button>
+
+      {/* === 6. Feedback / errors unchanged === */}
+      {status && (
+        <Toast
+          message={status}
+          type="success"
+          onClose={() => setStatus(null)}
+        />
       )}
-      {/* Error display, skip if user rejected */}
-      {error &&
-        !error.toLowerCase().includes("user rejected") &&
-        (() => {
-          const truncated = truncateMsg(error);
-          return (
-            <>
-              <p
-                className="error-message"
-                title={truncated !== error ? error : undefined}
-              >
-                Error: {truncated}
-              </p>
-              {truncated !== error && (
-                <div style={{ fontSize: "0.85em", color: "#888" }}>
-                  Full error: {error}
-                </div>
-              )}
-            </>
-          );
-        })()}
-      <Toast
-        message={truncateMsg(status)}
-        type="success"
-        onClose={() => setStatus(null)}
-      />
-      <Toast
-        message={truncateMsg(error)}
-        type="error"
-        onClose={() => setError(null)}
-      />
+      {error && (
+        <Toast message={error} type="error" onClose={() => setError(null)} />
+      )}
+      {txLink && (
+        <a
+          href={txLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ marginTop: 8, display: "block" }}
+        >
+          View transaction
+        </a>
+      )}
     </form>
   );
 };

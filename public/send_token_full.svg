@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 128" width="480" height="128" fill="none">
+  <!-- icon -->
+  <g stroke="#0A84FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="4" y="4" width="120" height="120" rx="20" ry="20" fill="none" />
+    <line x1="28" y1="64" x2="72" y2="64" />
+    <polyline points="60,48 84,64 60,80" />
+    <circle cx="88" cy="92" r="6" fill="#0A84FF" stroke="none" />
+  </g>
+  <!-- text -->
+  <text x="150" y="70" font-family="'Roboto Mono', monospace" font-size="64" font-weight="600" fill="#000000">
+    Send.
+  </text>
+  <text x="150" y="120" font-family="'Roboto Mono', monospace" font-size="64" font-weight="600" fill="#000000">
+    Token
+  </text>
+</svg>

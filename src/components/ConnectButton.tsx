@@ -15,7 +15,9 @@ export const ConnectButton = () => {
   return (
     <div>
       {isConnected ? (
-        <button onClick={handleDisconnect}>Disconnect</button>
+        <button className="btn-primary" onClick={handleDisconnect}>
+          Disconnect
+        </button>
       ) : (
         <appkit-button />
       )}
