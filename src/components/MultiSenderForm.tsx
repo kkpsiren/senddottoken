@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { encodeFunctionData, parseUnits, type Address } from "viem";
 import { useAppKitAccount } from "@reown/appkit/react-core";
-import { multisenderAddress } from "@/config";
+import { multisenderAddress, config } from "@/config";
 import { Spinner } from "./Spinner";
 import { Toast } from "./Toast";
 import { useClientMounted } from "@/hooks/useClientMount";
 import { useSendTransaction, useBalance } from "wagmi";
+import { readContract, waitForTransactionReceipt } from "wagmi/actions";
 
 const abi = [
   {
@@ -30,6 +31,29 @@ const abi = [
       { name: "amounts", type: "uint256[]" },
     ],
     outputs: [],
+  },
+] as const;
+
+const erc20Abi = [
+  {
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
   },
 ] as const;
 
@@ -72,7 +96,6 @@ export const MultiSenderForm = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const MAX_RETRIES = 15;
 
   // Token selection
   const selectedToken = tokenList.find((t) => t.symbol === selectedSymbol)!;
@@ -113,6 +136,11 @@ export const MultiSenderForm = () => {
       });
     return { count, total };
   }, [entries, selectedToken]);
+
+  const userBalance = selectedToken.address
+    ? tokenBalance?.value ?? 0n
+    : nativeBalance?.value ?? 0n;
+  const insufficientBalance = userBalance < summary.total;
 
   // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,9 +183,7 @@ export const MultiSenderForm = () => {
     }
 
     const total = values.reduce((s, v) => s + v, 0n);
-    const bal = selectedToken.address
-      ? tokenBalance?.value ?? 0n
-      : nativeBalance?.value ?? 0n;
+    const bal = userBalance;
     if (bal < total) {
       setError("Insufficient balance");
       setLoading(false);
@@ -165,6 +191,31 @@ export const MultiSenderForm = () => {
     }
 
     try {
+      if (selectedToken.address) {
+        const allowance = await readContract(config, {
+          abi: erc20Abi,
+          address: selectedToken.address as Address,
+          functionName: "allowance",
+          args: [address as Address, multisenderAddress as Address],
+        });
+        if (allowance < total) {
+          const approveData = encodeFunctionData({
+            abi: erc20Abi,
+            functionName: "approve",
+            args: [multisenderAddress as Address, total],
+          });
+          const approveHash = await sendTransactionAsync({
+            to: selectedToken.address as Address,
+            data: approveData,
+            account: address as Address,
+          });
+          setStatus(
+            `Approval tx sent: https://explorer.lens.xyz/tx/${approveHash}`
+          );
+          await waitForTransactionReceipt(config, { hash: approveHash });
+        }
+      }
+
       // Prepare calldata for disperseEther or disperseToken
       let data: `0x${string}`;
       if (selectedToken.address) {
@@ -248,6 +299,9 @@ export const MultiSenderForm = () => {
           Total amount: {Number(summary.total) / 10 ** selectedToken.decimals}{" "}
           {selectedSymbol}
         </p>
+        {insufficientBalance && (
+          <p style={{ color: "orange" }}>Warning: total exceeds balance</p>
+        )}
       </div>
       <button type="submit" disabled={loading || !isConnected}>
         {loading ? <Spinner /> : "Submit"}
