@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { encodeFunctionData, parseUnits, type Address } from "viem";
 import { useAppKitAccount } from "@reown/appkit/react-core";
 import { multisenderAddress } from "@/config";
@@ -72,7 +72,6 @@ export const MultiSenderForm = () => {
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const MAX_RETRIES = 15;
 
   // Token selection
   const selectedToken = tokenList.find((t) => t.symbol === selectedSymbol)!;
