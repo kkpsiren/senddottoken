@@ -357,7 +357,7 @@ export const MultiSenderForm = () => {
 
       {/* === 5. Primary action === */}
       <button
-        className="btn-primary"
+        className="btn btn-primary btn-lg"
         type="submit"
         disabled={loading || !isConnected}
       >

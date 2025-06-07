@@ -11,12 +11,17 @@ function getInitial(): ThemeMode {
 }
 
 export const ThemeSwitch = () => {
-  const [mode, setMode] = useState<ThemeMode>(getInitial);
+  const [mode, setMode] = useState<ThemeMode>("auto");
+  const [mounted, setMounted] = useState(false);
 
-  // apply theme side‑effects
   useEffect(() => {
+    setMounted(true);
+    setMode(getInitial());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (mode === "auto") {
-      // follow system
       const mql = window.matchMedia("(prefers-color-scheme: dark)");
       const apply = () => {
         document.documentElement.classList.toggle("dark", mql.matches);
@@ -26,12 +31,11 @@ export const ThemeSwitch = () => {
       return () => mql.removeEventListener("change", apply);
     }
     document.documentElement.classList.toggle("dark", mode === "dark");
-  }, [mode]);
+  }, [mode, mounted]);
 
-  // persist
   useEffect(() => {
-    window.localStorage.setItem("themeMode", mode);
-  }, [mode]);
+    if (mounted) window.localStorage.setItem("themeMode", mode);
+  }, [mode, mounted]);
 
   const options: [ThemeMode, React.ReactNode][] = [
     ["auto", "Auto"],
@@ -39,13 +43,33 @@ export const ThemeSwitch = () => {
     ["dark", <Moon size={16} key="moon" />],
   ];
 
+  function next(current: ThemeMode): ThemeMode {
+    if (current === "auto") return "light";
+    if (current === "light") return "dark";
+    return "auto";
+  }
+
+  if (!mounted) return null;
+
+  if (typeof window !== "undefined" && window.innerWidth < 300) {
+    return (
+      <button
+        className="btn btn-outline btn-sm"
+        onClick={() => setMode(next(mode))}
+        aria-label="Cycle theme"
+      >
+        {mode}
+      </button>
+    );
+  }
+
   return (
     <div className="theme-switch">
       {options.map(([val, label]) => (
         <button
           key={val}
           onClick={() => setMode(val)}
-          className={`seg-btn ${mode === val ? "active" : ""}`}
+          className={`seg-btn btn-sm ${mode === val ? "active" : ""}`}
           aria-pressed={mode === val}
         >
           {label}

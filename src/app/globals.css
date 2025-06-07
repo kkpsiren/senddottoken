@@ -96,7 +96,7 @@ pre {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 12px clamp(12px, 4vw, 32px);
   background: var(--background);
   border-bottom: 1px solid var(--header-border);
 }
@@ -212,6 +212,8 @@ input[type="number"] {
   display: inline-flex;
   border: 1px solid var(--header-border);
   border-radius: 999px;
+  overflow: hidden;
+  background: var(--background);
 }
 .seg-btn {
   all: unset;
@@ -233,21 +235,203 @@ input[type="number"] {
 html.dark .seg-btn:not(.active):hover {
   background: rgba(255, 255, 255, 0.08);
 }
+.seg-btn:first-child {
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+.seg-btn:last-child {
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+}
 
 .footer {
-  margin-top: 64px;
-  font-size: 14px;
+  margin-top: 16px;
+  font-size: 13px;
   color: var(--secondary);
   text-align: center;
 }
 .footer-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
+  gap: 8px;
   justify-content: center;
   align-items: center;
+  text-align: center;
+  margin-top: 0;
 }
 
 .text-right {
   text-align: right;
+}
+
+/* ===== Buttons v2 ===== */
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  user-select: none;
+}
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 14px;
+}
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 18px;
+}
+
+/* filled primary */
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #0069e6;
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* outline (header Connect / Disconnect uses this) */
+.btn-outline {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-outline:hover:not(:disabled) {
+  background: rgba(10, 132, 255, 0.1);
+}
+.btn-outline:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* full‑width primary action on ≤480px */
+@media (max-width: 480px) {
+  .btn-primary.btn-lg {
+    width: 100%;
+  }
+}
+
+/* Adaptive header padding */
+.header {
+  padding: 12px clamp(12px, 4vw, 32px);
+}
+
+/* Hide segment labels on very narrow screens */
+@media (max-width: 350px) {
+  .seg-btn {
+    padding: 6px 10px;
+  }
+  .seg-btn:first-child {
+    font-size: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 16px 4px;
+  }
+  .card {
+    padding: 12px 4px;
+    border-radius: 8px;
+  }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 4vw;
+  }
+  .header-brand {
+    font-size: 16px;
+    gap: 4px;
+  }
+  .header-right {
+    gap: 8px;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .footer {
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .footer-links {
+    gap: 4px;
+    margin-top: 0;
+  }
+  .footer a,
+  .footer span {
+    min-width: 0;
+    margin-bottom: 0;
+    padding: 0;
+  }
+  .textarea,
+  .select {
+    width: 100%;
+    min-width: 0;
+    font-size: 15px;
+  }
+  .field-row,
+  .total-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .table {
+    font-size: 12px;
+    min-width: 520px;
+  }
+  .table th,
+  .table td {
+    padding: 4px 2px;
+    word-break: break-all;
+  }
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table td a {
+    word-break: break-all;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .header {
+    padding: 6px 2vw;
+  }
+  .card {
+    padding: 8px 2px;
+    border-radius: 6px;
+  }
+  .footer-links {
+    gap: 8px;
+  }
+}
+
+.table .right,
+.table th.right {
+  text-align: right;
+}
+.table .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.mt-xl {
+  margin-top: 40px;
+}
+@media (max-width: 640px) {
+  .mt-xl {
+    margin-top: 32px;
+  }
 }

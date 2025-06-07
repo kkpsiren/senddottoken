@@ -5,6 +5,7 @@ import { usePublicClient } from "wagmi";
 import { parseAbiItem, type Address } from "viem";
 import { multisenderAddress } from "@/config";
 import { tokenList } from "@/constants/tokens";
+import { useAppKitAccount } from "@reown/appkit/react-core";
 
 interface TxInfo {
   hash: string;
@@ -62,9 +63,12 @@ function formatDateTime(ts: number): string {
 
 export const TxHistory = () => {
   const publicClient = usePublicClient();
+  const { isConnected } = useAppKitAccount();
   const [txs, setTxs] = useState<
     (TxInfo & { tokenAddress?: string; feeEth?: string })[]
   >([]);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 6;
 
   useEffect(() => {
     async function fetchLogs() {
@@ -119,6 +123,7 @@ export const TxHistory = () => {
         );
         detailed.sort((a, b) => b.timestamp - a.timestamp);
         setTxs(detailed);
+        setPage(0); // reset to first page on new data
       } catch (err) {
         console.error(err);
       }
@@ -126,52 +131,88 @@ export const TxHistory = () => {
     fetchLogs();
   }, []);
 
+  if (!isConnected) return null;
   if (!txs.length) return <p>No transactions found.</p>;
 
+  const pageCount = Math.ceil(txs.length / PAGE_SIZE);
+  const pagedTxs = txs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   return (
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Time</th>
-          <th>Total</th>
-          <th>Recipients</th>
-          <th>TxHash</th>
-          <th className="text-right">Fee</th>
-        </tr>
-      </thead>
-      <tbody>
-        {txs.map((tx) => {
-          const explorerUrl = `https://explorer.lens.xyz/tx/${tx.hash}`;
-          return (
-            <tr
-              key={tx.hash}
-              style={{ cursor: "pointer" }}
-              onClick={() =>
-                window.open(explorerUrl, "_blank", "noopener,noreferrer")
-              }
-            >
-              <td>{formatDateTime(tx.timestamp)}</td>
-              <td>{formatAmountByAddress(tx.value, tx.tokenAddress)}</td>
-              <td>{tx.recipients.toString()}</td>
-              <td>
-                <a
-                  href={explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
-                </a>
-              </td>
-              <td className="text-right">
-                {typeof tx.feeEth === "string" && tx.feeEth !== ""
-                  ? `${tx.feeEth} $GHO`
-                  : "-"}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="table-responsive">
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th className="right">Total</th>
+            <th className="right">Recipients</th>
+            <th>TxHash</th>
+            <th className="right">Fee</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pagedTxs.map((tx) => {
+            const explorerUrl = `https://explorer.lens.xyz/tx/${tx.hash}`;
+            return (
+              <tr
+                key={tx.hash}
+                style={{ cursor: "pointer" }}
+                onClick={() =>
+                  window.open(explorerUrl, "_blank", "noopener,noreferrer")
+                }
+              >
+                <td>{formatDateTime(tx.timestamp)}</td>
+                <td className="right num">
+                  {formatAmountByAddress(tx.value, tx.tokenAddress)}
+                </td>
+                <td className="right num">{tx.recipients.toString()}</td>
+                <td>
+                  <a
+                    href={explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
+                  </a>
+                </td>
+                <td className="right num">
+                  {typeof tx.feeEth === "string" && tx.feeEth !== ""
+                    ? `${tx.feeEth} $GHO`
+                    : "-"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {pageCount > 1 && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 12,
+            marginTop: 16,
+          }}
+        >
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+          >
+            Prev
+          </button>
+          <span style={{ alignSelf: "center", fontSize: 13 }}>
+            Page {page + 1} / {pageCount}
+          </span>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            disabled={page === pageCount - 1}
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </div>
   );
 };

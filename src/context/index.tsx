@@ -3,7 +3,7 @@
 import { wagmiAdapter, projectId, networks } from "@/config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createAppKit } from "@reown/appkit/react";
-import React, { type ReactNode } from "react";
+import React, { type ReactNode, useEffect } from "react";
 import { cookieToInitialState, WagmiProvider, type Config } from "wagmi";
 
 // Set up queryClient
@@ -51,6 +51,22 @@ function ContextProvider({
     wagmiAdapter.wagmiConfig as Config,
     cookies
   );
+
+  // Sync AppKit modal theme with app theme
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateTheme = () => {
+      const isDark = document.documentElement.classList.contains("dark");
+      modal.setThemeMode(isDark ? "dark" : "light");
+    };
+    updateTheme();
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <WagmiProvider

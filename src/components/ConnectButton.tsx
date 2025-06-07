@@ -1,10 +1,15 @@
 "use client";
 
-import { useAppKitAccount, useDisconnect } from "@reown/appkit/react-core";
+import {
+  useAppKitAccount,
+  useDisconnect,
+  useAppKit,
+} from "@reown/appkit/react-core";
 
 export const ConnectButton = () => {
   const { isConnected } = useAppKitAccount();
   const { disconnect } = useDisconnect();
+  const { open } = useAppKit();
   const handleDisconnect = async () => {
     try {
       await disconnect();
@@ -15,11 +20,13 @@ export const ConnectButton = () => {
   return (
     <div>
       {isConnected ? (
-        <button className="btn-primary" onClick={handleDisconnect}>
+        <button className="btn btn-outline btn-sm" onClick={handleDisconnect}>
           Disconnect
         </button>
       ) : (
-        <appkit-button />
+        <button className="btn btn-primary btn-sm" onClick={() => open()}>
+          Connect Wallet
+        </button>
       )}
     </div>
   );
